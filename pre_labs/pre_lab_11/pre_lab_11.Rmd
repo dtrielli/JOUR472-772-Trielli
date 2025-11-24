@@ -65,7 +65,7 @@ So, to scrape, the first thing we need to do is start with the URL. Let's store 
 **Task** Run the following code in the gray-colored codeblock below to save the URL
 
 ```{r}
-mde_url <- "https://news.maryland.gov/msde/category/pressreleases/"
+mde_url <- "https://news.maryland.gov/msde/category/newsreleases/"
 ```
 
 When we go to the web page, we can see a nicely-designed page that contains our information.
@@ -182,7 +182,7 @@ results <- mde_url |>
 
 results <- results[[1]] |>
   clean_names() |>
-  rename(title = press_releases) |>
+  rename(title = "news_releases") |>
   mutate(date = mdy(date))
 
 # show the dataframe
