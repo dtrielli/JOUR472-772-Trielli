@@ -1,6 +1,6 @@
 ---
-title: "pre_lab_11.Rmd"
-author: "derek willis"
+title: "pre_lab_12.Rmd"
+author: "Derek Willis"
 date: "2025-01-16"
 output: html_document
 ---
@@ -9,276 +9,324 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# An intro to text analysis
+# Scraping data with Rvest
 
-Throughout this course, we've been focused on finding information in structured data. We've learned a lot of techniques to do that, and we've learned how the creative mixing and matching of those skills can find new insights.
+Sometimes, governments put data online on a page or in a searchable database. And when you ask them for a copy of the data underneath the website, they say no.
 
-What happens when the insights are in unstructured data? Like a block of text?
+Why? Because they have a website. That's it. That's their reason. They say they don't have to give you the data because they've already given you the data, never mind that they haven't given to you in a form you can actually load into R with ease.
 
-Turning unstructured text into data to analyze is a whole course in and of itself -- and one worth taking if you've got the credit hours -- but some simple stuff is in the grasp of basic data analysis.
+Lucky for us, there's a way for us to write code to get data even when an agency hasn't made it easy: webscraping.
 
-To do this, we'll need a new library -- [tidytext](https://cran.r-project.org/web/packages/tidytext/vignettes/tidytext.html), which you can guess by the name plays very nicely with the tidyverse. So install it in the console with `install.packages("tidytext")` and we'll get rolling.
+One of the most powerful tools you can learn as a data journalist is how to scrape data from the web. Scraping is the process of programming a computer to act like a human that opens a web browser, goes to a website, ingests the HTML from that website into R and turns it into data.
+
+The degree of difficulty here goes from "Easy" to "So Hard You Want To Throw Your Laptop Out A Window." And the curve between the two can be steep. You can learn how to scrape "Easy" in a day. The hard ones take a little more time, but it's often well worth the effort because it lets you get stories you couldn't get without it.
+
+In this chapter, we'll show you an easy one.
+
+We're going to use a library called `rvest`, which you can install it the same way we've done all installs: go to the console and `install.packages("rvest")`.
+
+Like so many R package names, rvest is a bad pun. You're supposed to read it to sound like "harvest", as in "harvesting" information from a website the same way you'd harvest crops in a field.
 
 ### Task 1: Load libraries and settings
 
-**Task** Run the following code in the gray-colored codeblock below to load the libraries we'll use.
+**Task** Run the following code in the gray-colored codeblock below to load the libraries we'll use
 
 ```{r}
-#install.packages("tidytext")
+#| output: false
+library(rvest)
 library(tidyverse)
-library(tidytext)
 library(janitor)
 library(lubridate)
 ```
 
-Here's the question we're going to go after: what words or phrases appear most in [disciplinary alerts published by the Maryland Board of Physicians](https://www.mbp.state.md.us/disciplinary_2024.aspx)?
+For this example, we're going to work on loading a simple table of press releases from the Maryland State Department of Education
 
-To answer this question, we'll use the text of those alerts, which a previous class gathered.
+Let's suppose we can't find a table like that for download, but we do see a version on the website at this URL: <https://news.maryland.gov/msde/category/pressreleases/>.
 
-Let's read in this data and examine it:
-
-### Task 2: Read in data
-
-**Task** Run the following code and describe the dataframe it outputs. **Answer**
-
-```{r}
-alerts <- read_rds("data/md_doc_alerts.rds")
+```{r, echo=FALSE}
+knitr::include_graphics(rep("images/rvest1.png"))
 ```
 
-What we want to do is to make the `text` column easier to analyze. Let's say we want to find out the most commonly used words. We'll want to remove URLs from the text of the releases since they aren't actual words. Let's use mutate to make that happen:
+We could get this table into R with the following manual steps: highlighting the text, copying it into Excel, saving it as a csv, and reading it into R. Or, we could write a few lines of webscraping code to have R do that for us!
 
-### Task 3: Remove URLs from content
+In this simple example, it's probably faster to do it manually than have R do it for us. But this table is likely to change, and we don't want to keep doing manual repetitive tasks.
 
-**Task** Run the following code.
+Why would we ever write code to grab a single table? There's several reasons:
 
-```{r}
-alerts <- alerts |>
-  mutate(text = gsub("http.*","", text))
-```
+1.  Our methods are transparent. If a colleague wants to run our code from scratch to factcheck our work, they don't need to repeat the manual steps, which are harder to document than writing code.
+2.  Let's suppose we wanted to grab the same table every day, to monitor for changes. Writing a script once, and pressing a single button every day is going to be much more efficient than doing this manually every day.
+3.  If we're doing it manually, we're more likely to make a mistake, like maybe failing to copy every row from the whole table.
+4.  It's good practice to prepare us to do more complex scraping jobs. As we'll see in the next chapter, if we ever want to grab the same table from hundreds of pages, writing code is much faster and easier than going to a hundred different pages ourselves and downloading data.
 
-If you are trying to create a list of unique words, R will treat differences in capitalization as unique and also will include punctuation by default, even using its `unique` function:
+So, to scrape, the first thing we need to do is start with the URL. Let's store it as an object called courts_url.
 
-### Task 4: Trying out unique
+### Task 2: Save the URL as a variable
 
-**Task** Run the following code and describe what the `unique` function does to the original list of words. **Answer**
-
-```{r}
-a_list_of_words <- c("Dog", "dog", "dog", "cat", "cat", ",")
-unique(a_list_of_words)
-```
-
-Fortunately, this is a solved problem with tidytext, which has a function called `unnest_tokens` that will convert the text to lowercase and remove all punctuation. The way that `unnest_tokens` works is that we tell it what we want to call the field we're creating with this breaking apart, then we tell it what we're breaking apart -- what field has all the text in it. For us, that's the `text` column:
-
-### Task 5: Trying out unnest_tokens
-
-**Task** Run the following code and describe the output of using the `unnest_tokens` function. **Answer**
+**Task** Run the following code in the gray-colored codeblock below to save the URL
 
 ```{r}
-unique_words <- alerts |> select(text) |>
-  unnest_tokens(word, text)
-View(unique_words)
+mde_url <- "https://news.maryland.gov/msde/category/pressreleases/"
 ```
 
-### Task 6: Make a column chart
+When we go to the web page, we can see a nicely-designed page that contains our information.
 
-**Task** Run the following code and describe what the resulting graphic shows. Is it interesting? **Answer**
+But what we really care about, for our purposes, is the html code that creates that page.
 
-Now we can look at the top words in this dataset. Let's limit ourselves to making a plot of the top 25 words, and we'll use the function `count` to do the counting:
+In our web browser, if we right-click anywhere on the page and select "view source" from the popup menu, we can see the source code. Or you can just copy this into Google Chrome: <view-source:https://news.maryland.gov/msde/category/pressreleases/>.
+
+Here's a picture of what some of the source code looks like.
+
+```{r, echo=FALSE}
+knitr::include_graphics("images/rvest2.png")
+```
+
+We'll use those HTML tags -- things like `<table>` and `<tr>` -- to grab the info we need.
+
+Okay, step 1.
+
+Let's write a bit of code to tell R to go to the URL for the page and ingest all of that HTML code. In the code below, we're starting with our URL and using the read_html() function from rvest to ingest all of the page html, storing it as an object called results.
+
+### Task 3: Ingest the HTML from the URL
+
+**Task** Run the following code in the gray-colored codeblock below to save the HTML from that URL as a variable
 
 ```{r}
-unique_words |>
-  count(word, sort = TRUE) |>
-  top_n(25) |>
-  mutate(word = reorder(word, n)) |>
-  ggplot(aes(x = word, y = n)) +
-  geom_col() +
-  xlab(NULL) +
-  coord_flip() +
-      labs(x = "Count",
-      y = "Unique words",
-      title = "Count of unique words found in Maryland doctor discipline alerts")
+# read in the html
+results <- mde_url |>
+  read_html()
+
+# display the html below
+results
+
 ```
 
-Well, that's a bit underwhelming - a lot of very common (and short) words. This also is a solved problem in working with text data, and words like "a" and "the" are known as "stop words". In most cases you'll want to remove them from your analysis since they are so common. Tidytext provides a dataframe of them that we'll load, and then we'll add some of our own.
+If you're running this code in R Studio, in our environment window at right, you'll see results as a "list of 2".
 
-### Task 7: Load the stop words
+This is not a dataframe, it's a different type of data structure a "nested list."
 
-**Task** Run the following code
+If we click on the name "results" in our environment window, we can see that it's pulled in the html and shown us the general page structure. Nested within the `<html>` tag is the `<head>` and `<body>`, the two fundamental sections of most web pages. We're going to pull information out of the `<body>` tag in a bit.
+
+```{r, echo=FALSE}
+knitr::include_graphics("images/rvest3.png")
+```
+
+Now, our task is to just pull out the section of the html that contains the information we need.
+
+But which part do we need from that mess of html code? To figure that out, we can go back to the page in a web browser like chrome, and use built in developer tools to "inspect" the html code underlying the page.
+
+On the page, find the data we want to grab and right click on the word "Date" in the column header of the table. That will bring up a dropdown menu. Select "Inspect", which will pop up a window called the "element inspector" that shows us where different elements on the page are located, what html tags created those elements, and other info.
+
+```{r, echo=FALSE}
+knitr::include_graphics("images/rvest4.png")
+```
+
+The table that we want is actually contained inside an html `<table>`. It has a `<tbody>` that contains one row `<tr>` per release.
+
+Because it's inside of a table, and not some other kind of element (like a `<div>`), rvest has a special function for easily extracting and converting html tables, called html_table(). This function extracts all the html tables on the page, but this page only has one so we're good.
+
+### Task 4: Extract tables from the HTML source
+
+**Task** Run the following code in the gray-colored codeblock below to extract all tables in the HTML as a variable
 
 ```{r}
-data("stop_words")
+# read in the html and extract all the tables
+results <- mde_url |>
+  read_html() |>
+  html_table()
 
-stop_words <- stop_words |>
-  add_row(word = "respondent") |> 
-  add_row(word = "board") |> 
-  add_row(word = "panel") |>
-  add_row(word = "dr") |>
-  add_row(word = "maryland") |>
-  add_row(word = 'practice') |> 
-  add_row(word = '1') |> 
-  add_row(word = '2') |>
-  add_row(word = '3') |>
-  add_row(word = '14')
+# show the dataframe
+
+results
 ```
 
-Then we're going to use a function we haven't used yet called an `anti_join`, which filters out any matches. So we'll `anti_join` the stop words and get a list of words that aren't stop words.
+In the environment window at right, look at results Note that it's now a "list of 2".
 
-From there, we can get a simple word frequency by just grouping them together and counting them. We can borrow the percent code from above to get a percent of the words our top 10 words represent.
+This gets a little complicated, but what you're seeing here is a nested list that contains two data frames.
 
-### Task 8: Using anti_join
+Let's say we are interested in 2023, so all we need to do now is to store that first dataframe as an object. We can do that with this code, which says "keep only the first dataframe from our nested list."
 
-**Task** Run the following code and describe the results. Is it more interesting than before? **Answer**
+### Task 5: Save one table from the HTML source
+
+**Task** Run the following code in the gray-colored codeblock below to extract all tables in the HTML and save it as a dataframe. What do you notice about the columns? **Answer**
 
 ```{r}
-unique_words |>
-  anti_join(stop_words) |>
-  group_by(word) |>
-  tally(sort=TRUE) |>
-  mutate(percent = (n/sum(n))*100) |>
-  top_n(50)
+# Read in all html from table, store all tables on page as nested list of dataframes.
+results <- mde_url |>
+  read_html() |>
+  html_table()
+
+# Just keep the first dataframe in our list
+
+results <- results[[1]]
+
+# show the dataframe
+
+results
 ```
 
-Those seem like more relevant unique words. Now, here's where we can start to do more interesting and meaningful analysis. Let's create three dataframes of unique words based on time: one for all of 2023 and the other for all of 2022:
+We now have a proper dataframe, albeit one that we could improve, especially in terms of column names.
 
-### Task 9: Create dataframes for 2022 and 2023
+From here, we can do a little cleaning. First we'll use clean_names() to lower the column names. Then use rename() to replace the title column with a simpler version and properly format the date.
 
-**Task** Run the following code
+### Task 6: Clean up the data
+
+**Task** Run the following code to extract the table we want, clean up the names and change the date column to an actual date. Look at the dataframe; what other information about these releases might you want to add? **Answer**
 
 ```{r}
-unique_words_2023 <- alerts |>
-  filter(year(date) == 2023) |>
-  select(text) |>
-  unnest_tokens(word, text)
+# Read in all html from table, get the HTML table.
+results <- mde_url |>
+  read_html() |>
+  html_table()
 
-unique_words_2022 <- alerts |>
-  filter(year(date) == 2022) |>
-  select(text) |>
-  unnest_tokens(word, text)
+# Standardize column headers, remove last row
+
+results <- results[[1]] |>
+  clean_names() |>
+  rename(title = press_releases) |>
+  mutate(date = mdy(date))
+
+# show the dataframe
+results
+
 ```
 
-Then we can create top 10 lists for both of them and compare:
+And there we go. We now have a nice tidy dataframe of Maryland state education press releases.
 
-### Task 10: Create dataframes with the top 10 words in each year
+What about HTML that doesn't have a table? Well, that's where things get a bit more complicated, and rely on your ability to read HTML and identify particular elements of it.
 
-**Task** Run the following code and describe the results. **Answer**
+Let's consider the list of press releases from the little-known but fascinating Office of the State Prosecutor: <https://osp.maryland.gov/press-releases/>. Let's save that URL as a variable as we did above:
+
+### Task 7: Save the URL as a variable
+
+**Task** Run the following code in the gray-colored codeblock below to save the URL
 
 ```{r}
-unique_words_2023 |>
-  anti_join(stop_words) |>
-  group_by(word) |>
-  tally(sort=TRUE) |>
-  mutate(percent = (n/sum(n))*100) |>
-  top_n(10)
-
-unique_words_2022 |>
-  anti_join(stop_words) |>
-  group_by(word) |>
-  tally(sort=TRUE) |>
-  mutate(percent = (n/sum(n))*100) |>
-  top_n(10)
+osp_url <- "https://osp.maryland.gov/press-releases/"
 ```
 
-Useful, but only to a point. Single words only gets us so much.
+The next step is similar to before, too, except this time we're not going to call `html_table()` because there are no tables here that we want. In order to find what we want, we'll need to right-click on the first release date and choose "Inspect":
 
-## Going beyond a single word
+### Task 8: Inspect the HTML elements
 
-The next step in text analysis is using `ngrams`. An `ngram` is any combination of words that you specify. Two word ngrams are called bigrams (bi-grams). Three would be trigrams. And so forth.
+**Task** Right-click on the first release date and choose "Inspect". You should see multiple
 
-The code to make ngrams is similar to what we did above, but involves some more twists.
+<li>
 
-So this block is is going to do the following:
+tags inside a
 
-1.  Use the alerts data we created above, and filter for pre-2022 releases.
-2.  Unnest the tokens again, but instead we're going to create a field called bigram, break apart summary, but we're going to specify the tokens in this case are ngrams of 2.
-3.  We're going to make things easier to read and split bigrams into word1 and word2.
-4.  We're going to filter out stopwords again, but this time we're going to do it in both word1 and word2 using a slightly different filtering method.
-5.  Because of some weirdness in calculating the percentage, we're going to put bigram back together again, now that the stop words are gone.
-6.  We'll then group by, count and create a percent just like we did above.
-7.  We'll then use top_n to give us the top 10 bigrams.
+<ul>
 
-### Task 11: Create a dataframe with the top 10 two-word phrases for 2021
+tag.
 
-**Task** Run the following code and describe the results. **Answer**
+One reason that we use HTML elements like ul and li is to help organize the code and make it easier to maintain. But it also helps with scraping, because we can zero in on the elements we want. Let's start by reading it in:
+
+### Task 9: Read the HTML source
+
+**Task** Run the following code in the gray-colored codeblock below to save the HTML as a variable
 
 ```{r}
-alerts |>
-  filter(date < '2024-01-01') |>
-  unnest_tokens(bigram, text, token = "ngrams", n = 2) |>
-  separate(bigram, c("word1", "word2"), sep = " ") |>
-  filter(!word1 %in% stop_words$word) |>
-  filter(!word2 %in% stop_words$word) |>
-  mutate(bigram = paste(word1, word2, sep=" ")) |>
-  group_by(bigram) |>
-  tally(sort=TRUE) |>
-  mutate(percent = (n/sum(n))*100) |>
-  top_n(10)
+osp_results <- osp_url |>
+  read_html()
+
+# show the result
+osp_results
 ```
 
-And we already have a different, more nuanced result. We can see that "summary suspension", "unprofessional conduct" and "medical records" are among the top 2-word phrases. What about after 2023?
+Once again we get a list of two as our result. In this case, we don't want to isolate the first item in our list. Instead, we want to try to locate all of the `li` tags inside this HTML. Since the `li` tag is an HTML element, we use the function `html_elements()` to get them. If we only wanted a single element, we'd use `html_element()`:
 
-### Task 12: Create a dataframe with the top 10 two-word phrases for 2023
+### Task 10: Isolate the list of `li` tags inside the HTML using `html_elements`
 
-**Task** Run the following code and describe the results. **Answer**
+**Task** Run the following code in the gray-colored codeblock below to find the
+
+<li>
+
+tags. What does the output suggest about how many
+
+<ul>
+
+tags there are in the HTML source? **Answer**
 
 ```{r}
-alerts |>
-  filter(date < '2024-01-01') |>
-  unnest_tokens(bigram, text, token = "ngrams", n = 2) |>
-  separate(bigram, c("word1", "word2"), sep = " ") |>
-  filter(!word1 %in% stop_words$word) |>
-  filter(!word2 %in% stop_words$word) |>
-  mutate(bigram = paste(word1, word2, sep=" ")) |>
-  group_by(bigram) |>
-  tally(sort=TRUE) |>
-  mutate(percent = (n/sum(n))*100) |>
-  top_n(10)
+osp_results |> html_elements('li')
 ```
 
-And 2024?
+Good news and bad news here: we have all of the
 
-### Task 13: Create a dataframe with the top 10 two-word phrases for 2024
+<li>
 
-**Task** Run the following code and describe the results. **Answer**
+tags, but we have lots of them, and it's hard to see if we have the right ones. Let's see what we're dealing with and just look at the text *inside* the
+
+<li>
+
+tags. To do that, we add `html_text()` to the end of the last code block:
+
+### Task 10: Isolate the text of `li` tags inside the HTML using `html_text`
+
+**Task** Run the following code in the gray-colored codeblock below to find the text inside
+
+<li>
+
+tags. Describe the output: **Answer**
 
 ```{r}
-alerts |>
-  filter(date >= '2024-01-01') |>
-  unnest_tokens(bigram, text, token = "ngrams", n = 2) |>
-  separate(bigram, c("word1", "word2"), sep = " ") |>
-  filter(!word1 %in% stop_words$word) |>
-  filter(!word2 %in% stop_words$word) |>
-  mutate(bigram = paste(word1, word2, sep=" ")) |>
-  group_by(bigram) |>
-  tally(sort=TRUE) |>
-  mutate(percent = (n/sum(n))*100) |>
-  top_n(10)
+osp_results |> html_elements('li') |> html_text()
 ```
 
-Pretty similar. You'll notice that the percentages are very small; that's not irrelevant but in some cases it's the differences in patterns that's more important.
+Ok, so now we can see the press releases. But they are surrounded by a bunch of things we don't want, and this *still* isn't a dataframe. Let's solve the second problem first with the `as_tibble()` function:
 
-There are some potential challenges to doing an analysis. For one, there are variations of words that could probably be standardized - maybe using OpenRefine - that would give us cleaner results. There might be some words among our list of stop words that actually are meaningful in this context.
+\### Task 11: Turn the contents of the
 
-## Sentiment Analysis
+<li>
 
-Another popular use of text analysis is to measure the sentiment of a word - whether it expresses a positive or negative idea - and tidytext has built-in tools to make that possible. We use word counts like we've already calculated and bring in a dataframe of words (called a lexicon) along with their sentiments using a function called `get_sentiments`. The most common dataframe is called "bing" which has nothing to do with the Microsoft search engine. Let's load it:
+tags into a dataframe
 
-### Task 14: Load the bing lexicon and produce sentiments for our 2021-2023 unique words
-
-**Task** Run the following code and describe the results. Do any of the sentiments seem incorrect or counter-intuitive? **Answer**
+**Task** Run the following code in the gray-colored codeblock below to make a dataframe. Describe the output: **Answer**
 
 ```{r}
-bing <- get_sentiments("bing")
-
-bing_word_counts_2023 <- unique_words_2023 |>
-  inner_join(bing) |>
-  count(word, sentiment, sort = TRUE)
-
-bing_word_counts_2022 <- unique_words_2022 |>
-  inner_join(bing) |>
-  count(word, sentiment, sort = TRUE)
-
-View(bing_word_counts_2023)
-View(bing_word_counts_2022)
+releases <- osp_results |> html_elements('li') |> html_text() |> as_tibble()
 ```
 
-Gauging the sentiment of a word can be heavily dependent on the context, and as with other types of text analysis sometimes larger patterns are more meaningful than individual results. But the potential with text analysis is vast: knowing what words and phrases that public officials employ can be a way to evaluate their actions and priorities. And those words and phrases are data.
+Now we're getting closer. The press releases have a specific HTML class tied to the
+
+<li>
+
+tag - in this case "listing-item". We can isolate those:
+
+\### Task 12: Isolate just the
+
+<li class="listing-item">
+
+elements
+
+**Task** Run the following code in the gray-colored codeblock below to remove the unwanted rows from our dataframe:
+
+```{r}
+releases <- osp_results |> html_elements('li.listing-item') |> html_text() |> as_tibble()
+```
+
+Ok, this is *better*, but it's still not great. We have at least two issues:
+
+1.  The column is called `value`
+2.  The column has two kinds of information in it: a date and the title.
+
+Let's solve both of those using the `separate()` function, which does what you think it does and gives us a chance to rename the columns:
+
+### Task 13: Clean up our elements
+
+**Task** Run the following code in the gray-colored codeblock below to split the `value` column into two columns based on the ":" character and name them:
+
+```{r}
+releases <- osp_results |> html_elements('li.listing-item') |> html_text() |> as_tibble() |> separate(value, c('date', 'title'), sep=":")
+```
+
+That worked, but it also exposed a couple of things, as that Warning message indicates: not all of the rows had a colon in them and the `title` column has a leading space. Let's fix both of those - we'll drop the rows where the title is NA.
+
+### Task 14: Clean up our elements more
+
+**Task** Run the following code in the gray-colored codeblock below to get rid of releases without dates and trim the leading spaces. Just for fun, we'll convert the dates into actual dates, too:
+
+```{r}
+releases <- osp_results |> html_elements('li.listing-item') |> html_text() |> as_tibble() |> separate(value, c('date', 'title'), sep=":") |> drop_na(title) |> mutate(title = str_squish(title), date = mdy(date))
+```
+
+And now you have the data.
