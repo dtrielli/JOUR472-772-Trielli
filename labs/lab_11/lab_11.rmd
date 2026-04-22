@@ -33,7 +33,7 @@ Let's get to scraping.
 
 **Q1**. Scrape the listing of available Maryland physician disciplinary alerts at [www.mbp.state.md.us/disciplinary_2025.aspx](www.mbp.state.md.us/disciplinary_2025.aspx) into a dataframe. You should have three columns, one of which is a date, so make sure the date column has a date datatype. What's the most common sanction, and how many times is it mentioned in the 2024 alerts?
 
-**A1** The most common sanction is "Summary Suspension Affirmed." and it appears 7 times.
+**A1** 
 
 ```{r}
 
@@ -43,7 +43,7 @@ Let's get to scraping.
 
 When you finish scraping into a dataframe, write code to find the press releases that have the word "police" in the title.
 
-**A2** There are nine of them, the most recent in 2021.
+**A2** 
 
 ```{r}
 
