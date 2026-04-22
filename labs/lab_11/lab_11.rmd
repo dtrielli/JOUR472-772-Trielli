@@ -11,21 +11,29 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## You will need
 
--   Our usual libraries for working with data, plus rvest and lubridate.
+-   Our usual libraries for working with data, plus rvest.
 
 ## Load libraries and establish settings
 
 **Task** Create a codeblock and load appropriate packages and settings for this lab.
 
+```{r}
+# Turn off scientific notation
+options(scipen=999)
 
+library(tidyverse)
+library(janitor)
+library(rvest)
+library(lubridate)
+```
 
 Let's get to scraping.
 
 ## Questions
 
-**Q1**. Scrape the listing of available Maryland physician disciplinary alerts at <https://www.mbp.state.md.us/disciplinary_2024.aspx> into a dataframe. You should have three columns, one of which is a date, so make sure the date column has a date datatype. What's the most common sanction, and how many times is it mentioned in the 2024 alerts?
+**Q1**. Scrape the listing of available Maryland physician disciplinary alerts at [www.mbp.state.md.us/disciplinary_2025.aspx](www.mbp.state.md.us/disciplinary_2025.aspx) into a dataframe. You should have three columns, one of which is a date, so make sure the date column has a date datatype. What's the most common sanction, and how many times is it mentioned in the 2024 alerts?
 
-**A1** 
+**A1** The most common sanction is "Summary Suspension Affirmed." and it appears 7 times.
 
 ```{r}
 
@@ -35,7 +43,7 @@ Let's get to scraping.
 
 When you finish scraping into a dataframe, write code to find the press releases that have the word "police" in the title.
 
-**A2** 
+**A2** There are nine of them, the most recent in 2021.
 
 ```{r}
 
@@ -54,5 +62,7 @@ Finally, tell me what questions you could ask of this data if you had all of his
 **A3**
 
 ```{r}
+
+
 
 ```
