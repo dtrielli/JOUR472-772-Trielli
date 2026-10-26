@@ -53,41 +53,42 @@ Note: There are thousands of variables in SF1. That's not a typo. Open it in you
 
 The `name` variable is the Census code for each kind of data, while `label` describes it and `concept` is a broader category.
 
-If you think that's crazy, try the SF3 file from 2000.
+The 2020 PL file has fewer variables than the 2010 SF1 file. We’ll use it in the next task because it includes the 2020 total population count.
 
 **Task** Run the following codeblock and look at the resulting variable.
 
 ```{r}
-sf3 <- load_variables(2000, "sf3", cache = TRUE)
+pl <- load_variables(2020, "pl", cache = TRUE)
+View(pl)
 ```
 
 ### Task 4: Calculate the fastest-growing state
 
-So let's try to answer a question using the Census. What is the fastest growing state since 2000?
+So let's try to answer a question using the Census. What is the fastest growing state since 2010?
 
 To answer this, we need to pull the total population by state in each of the decennial census.
 
-**Task** Run the following codeblock and examine the 2010 results
+**Task** Run the following codeblock and examine the 2010 and 2020 results
 
 ```{r}
-p00 <- get_decennial(geography = "state", variables = "P001001", year = 2000)
 p10 <- get_decennial(geography = "state", variables = "P001001", year = 2010)
+p20 <- get_decennial(geography = "state", variables = "P1_001N", year = 2020, sumfile = "pl")
 ```
 
-Let's take a peek at 2010.
+Let's take a peek at 2020.
 
 ```{r}
-p10
+p20
 ```
 
-As you can see, we have a GEOID, NAME, then variable and value. Variable and value are going to be the same. Because those are named the same thing, to merge them together, we need to rename them. Remember how we used `rename` in the last lab? We're going to use it some more.
+As you can see, we have a GEOID, NAME, then variable and value. Variable are going to be the same name across years. Because those are named the same thing, to merge them together, we need to rename them. Remember how we used `rename` in the last lab? We're going to use it some more.
 
 **Task** Run the following codeblock to rename the population total columns in each dataframe:
 
 ```{r}
 p10 |> select(GEOID, NAME, value) |> rename(Population2010=value) -> p10
 
-p00 |> select(GEOID, NAME, value) |> rename(Population2000=value) -> p00
+p20 |> select(GEOID, NAME, value) |> rename(Population2020=value) -> p20
 
 ```
 
@@ -96,7 +97,7 @@ Now we join the data together.
 **Task** Run the following codeblock to combine the two dataframes into a single variable called `alldata`:
 
 ```{r}
-alldata <- p00 |> inner_join(p10)
+alldata <- p20 |> inner_join(p10)
 ```
 
 And now we calculate the percent change.
@@ -104,14 +105,7 @@ And now we calculate the percent change.
 **Task** Run the following codeblock to calculate the percentage change and put the state with the largest percentage growth below. **Answer**
 
 ```{r}
-alldata |> mutate(change = ((Population2010-Population2000)/Population2000)*100) |> arrange(desc(change))
-```
-
-You may be asking: hey, wasn't there a 2020 Census? Where's that data? The answer is that it's coming - the Census Bureau has a [schedule of releases](https://www.census.gov/programs-surveys/popest/about/schedule.html). There are some variables available:
-
-```{r}
-pl <- load_variables(2020, "pl")
-View(pl)
+alldata |> mutate(change = ((Population2020-Population2010)/Population2010)*100) |> arrange(desc(change))
 ```
 
 ## The ACS
