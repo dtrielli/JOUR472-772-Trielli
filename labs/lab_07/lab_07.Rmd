@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## You will need
 
--   A Census API key
+- A Census API key
 
 ## Load libraries and establish settings
 
@@ -39,7 +39,7 @@ You'll need your Census API Key:
 
 You'll also need to load the list of American Community Survey variables from the 2023 5-year estimates so you can identify the codes you need:
 
-**Task** load the variables from the 2021 5-year ACS (which is called "acs5") and save them to a dataframe
+**Task** load the variables from the 2023 5-year ACS (which is called "acs5") and save them to a dataframe
 
 ```{r}
 ```
