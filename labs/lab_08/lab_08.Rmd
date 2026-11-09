@@ -17,7 +17,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 **Task** Create a codeblock and load the following data from the data folder:
 
--   Prince George's County 911 Overdose Calls
+- Prince George's County 911 Overdose Calls
+
+```{r}
+library(tidyverse)
+library(tidycensus)
+```
 
 You will need to create columns for the date, week and month based on the existing `datetime` column.
 
@@ -25,9 +30,9 @@ You will need to create columns for the date, week and month based on the existi
 
 **Q1.** Which month saw the greatest percentage of total calls? Create a dataframe that calculates the percentage of all calls that each month's calls represents. Make a bar chart from that dataframe. Your bar chart must have:
 
--   A clear title that states the main idea/finding
--   Good labels for the x & y axis and a caption for the source, which is Prince George's County EMS.
--   Readable bars - the values shouldn't be overlapping
+- A clear title that states the main idea/finding
+- Good labels for the x & y axis and a caption for the source, which is Prince George's County EMS.
+- Readable bars - the values shouldn't be overlapping
 
 Compare the results here to those from the pre_lab_08 bar chart - are there major differences in the months with the highest and lowest figures? Describe that below.
 
@@ -38,9 +43,9 @@ Compare the results here to those from the pre_lab_08 bar chart - are there majo
 
 **Q2.** Let's visualize this data on a weekly basis using a line chart. As in Q1, generate a dataframe with the total number of calls for each week, and then create a line chart to show the distribution of calls over time. Your line chart must have:
 
--   A clear title that states the main idea/finding
--   Good labels for the x & y axis and a caption for the source, which is Prince George's County EMS.
--   Readable labels
+- A clear title that states the main idea/finding
+- Good labels for the x & y axis and a caption for the source, which is Prince George's County EMS.
+- Readable labels
 
 Describe the pattern of results; you may want to look at the data to dig into particular outliers.
 
